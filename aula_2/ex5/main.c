@@ -2,12 +2,16 @@
 #include"conversoes.h"
 
 int main(){
-    int loop = 1;
-    int opc = 0;
-    
-    while(loop =  1){
-        menu(opc);
+    int opc = menu();
 
+    if(opc ==1){
+        printf("%.2f\n", CouF());
     }
-
+    if(opc ==2){
+        printf("%.2f\n", MouQ());
+    }
+    if(opc ==3){
+        printf("%.2f\n", SouM());
+    }
+    return(0);
 }

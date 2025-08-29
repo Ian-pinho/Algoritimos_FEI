@@ -1,4 +1,4 @@
-int menu(int);
-int CouF();
-int MouQ();
-int SouM();
+int menu();
+float CouF();
+float MouQ();
+float SouM();
