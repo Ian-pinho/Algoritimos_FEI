@@ -1,0 +1,20 @@
+1;Pizza;25.00
+2;Hamburguer;18.50
+3;Acai;12.00
+4;Sushi;40.00
+5;Salada;10.00
+6;Cachorro Quente;14.00
+7;Pastel;8.50
+8;Lasanha;22.00
+9;Batata Frita;9.00
+10;Milkshake;13.00
+11;Pão de Queijo;5.00
+12;Tapioca;7.50
+13;Coxinha;6.00
+14;Panqueca;11.00
+15;Esfirra;4.50
+16;Marmita;20.00
+17;Sorvete;8.00
+18;Frango Grelhado;19.00
+19;Arroz e Feijão;15.00
+20;Refrigerante;6.00
