@@ -2,9 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_STR 128
 #define MAX_NAME 40
-#define MAX_ITEMS 50
 #define ALIMENTOS_FILE "alimentos.txt"
 #define USUARIOS_FILE "usuarios.txt"
 #define PEDIDOS_FILE "pedidos.txt"
@@ -12,7 +10,7 @@
 
 typedef struct {
     int id;
-    char nome[MAX_STR];
+    char nome[128];
     double preco;
 } Alimento;
 
@@ -339,7 +337,7 @@ void fazer_pedido(const char *usuario) {
         printf("Quantidade invalida.\n");
         return;
     }
-    int itens_ids[MAX_ITEMS];
+    int itens_ids[50];
     int added = 0;
     double total = 0.0;
     for (int i = 0; i < qtd; i++) {

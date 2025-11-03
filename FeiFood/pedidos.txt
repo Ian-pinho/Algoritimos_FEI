@@ -1,2 +1,2 @@
-1;Ian Pinho;2;18.50
 2;Ian Pinho;8|2;40.50
+3;Ian Pinho;8|2|19;55.50
