@@ -83,18 +83,7 @@ int buscar_alimentos_por_nome(const char *termo, Alimento *resultado, int maxres
     strncpy(termo_low, termo, sizeof(termo_low)-1);
     termo_low[sizeof(termo_low)-1] = '\0';
     for (int i = 0; termo_low[i]; i++) if (termo_low[i] >= 'A' && termo_low[i] <= 'Z') termo_low[i] += 32;
-
-    for (int i = 0; i < n && found < maxres; i++) {
-        char nome_low[128];
-        strncpy(nome_low, vet[i].nome, sizeof(nome_low)-1);
-        nome_low[sizeof(nome_low)-1] = '\0';
-        for (int j = 0; nome_low[j]; j++) if (nome_low[j] >= 'A' && nome_low[j] <= 'Z') nome_low[j] += 32;
-        if (strstr(nome_low, termo_low) != NULL) {
-            resultado[1];
-        }
-    }
-
-    found = 0;
+    
     for (int i = 0; i < n && found < maxres; i++) {
         char nome_low[128];
         strncpy(nome_low, vet[i].nome, sizeof(nome_low)-1);
@@ -414,6 +403,157 @@ void avaliar_pedido(const char *usuario) {
     }
 }
 
+int alterar_pedido(const char *usuario) {
+    if (!file_exists(PEDIDOS_FILE)) {
+        printf("Nenhum pedido encontrado.\n");
+        return 0;
+    }
+
+    // Mostra os pedidos do usuário
+    listar_meus_pedidos(usuario);
+    printf("Digite o ID do pedido que deseja alterar: ");
+    char tmp[32];
+    read_line(tmp, sizeof(tmp));
+    int id_alvo = atoi(tmp);
+
+    FILE *f = fopen(PEDIDOS_FILE, "r");
+    FILE *tmpf = fopen("tmp_pedidos.txt", "w");
+    if (!f || !tmpf) {
+        printf("Erro ao abrir arquivos.\n");
+        if (f) fclose(f);
+        if (tmpf) fclose(tmpf);
+        return 0;
+    }
+
+    char linha[512];
+    int alterado = 0;
+
+    while (fgets(linha, sizeof(linha), f)) {
+        strip_newline(linha);
+        if (strlen(linha) == 0) continue;
+
+        char copia[512];
+        strncpy(copia, linha, sizeof(copia)-1);
+        copia[sizeof(copia)-1] = '\0';
+
+        char *tok = strtok(copia, ";");
+        if (!tok) continue;
+        int id = atoi(tok);
+        tok = strtok(NULL, ";");
+        if (!tok) continue;
+        char usuario_lido[MAX_NAME];
+        strncpy(usuario_lido, tok, sizeof(usuario_lido)-1);
+        usuario_lido[sizeof(usuario_lido)-1] = '\0';
+
+        if (id == id_alvo && strcmp(usuario_lido, usuario) == 0) {
+            // Pedido encontrado
+            char *itens_str = strtok(NULL, ";");
+            char *total_str = strtok(NULL, ";");
+            double total = total_str ? atof(total_str) : 0.0;
+
+            printf("\nPedido atual:\nItens: %s | Total: R$ %.2f\n", itens_str, total);
+            printf("O que deseja fazer?\n");
+            printf("1 - Adicionar alimento\n");
+            printf("2 - Remover alimento\n");
+            printf("Escolha: ");
+            read_line(tmp, sizeof(tmp));
+            int escolha = atoi(tmp);
+
+            // Copia itens atuais para vetor de inteiros
+            int itens_ids[50];
+            int count = 0;
+            char *token = strtok(itens_str, "|");
+            while (token && count < 50) {
+                itens_ids[count++] = atoi(token);
+                token = strtok(NULL, "|");
+            }
+
+            if (escolha == 1) {
+                // Adicionar novo item
+                printf("Digite o nome (ou parte) do alimento para adicionar: ");
+                char termo[128];
+                read_line(termo, sizeof(termo));
+                Alimento encontrados[50];
+                int n = buscar_alimentos_por_nome(termo, encontrados, 50);
+                if (n == 0) {
+                    printf("Nenhum alimento encontrado.\n");
+                } else {
+                    printf("Digite o ID do alimento que deseja adicionar: ");
+                    read_line(tmp, sizeof(tmp));
+                    int id_add = atoi(tmp);
+                    Alimento a;
+                    if (encontrar_alimento_por_id(id_add, &a)) {
+                        itens_ids[count++] = id_add;
+                        total += a.preco;
+                        printf("Alimento adicionado: %s (R$ %.2f)\n", a.nome, a.preco);
+                    } else {
+                        printf("ID nao encontrado.\n");
+                    }
+                }
+            } else if (escolha == 2) {
+                // Remover item existente
+                printf("IDs atuais do pedido: ");
+                for (int i = 0; i < count; i++) printf("%d ", itens_ids[i]);
+                printf("\nDigite o ID do alimento a remover: ");
+                read_line(tmp, sizeof(tmp));
+                int id_remove = atoi(tmp);
+
+                int novo_count = 0;
+                int removido = 0;
+                Alimento a;
+                double preco_removido = 0.0;
+
+                for (int i = 0; i < count; i++) {
+                    if (itens_ids[i] == id_remove && !removido) {
+                        if (encontrar_alimento_por_id(id_remove, &a))
+                            preco_removido = a.preco;
+                        removido = 1;
+                        continue;
+                    }
+                    itens_ids[novo_count++] = itens_ids[i];
+                }
+
+                if (removido) {
+                    count = novo_count;
+                    total -= preco_removido;
+                    printf("Item %d removido (R$ %.2f).\n", id_remove, preco_removido);
+                } else {
+                    printf("ID nao encontrado no pedido.\n");
+                }
+            } else {
+                printf("Opcao invalida.\n");
+            }
+
+            // Reescreve o pedido alterado no arquivo temporário
+            fprintf(tmpf, "%d;%s;", id, usuario);
+            for (int i = 0; i < count; i++) {
+                fprintf(tmpf, "%d", itens_ids[i]);
+                if (i < count - 1) fprintf(tmpf, "|");
+            }
+            fprintf(tmpf, ";%.2f\n", total);
+            alterado = 1;
+        } else {
+            // Mantém pedidos inalterados
+            fprintf(tmpf, "%s\n", linha);
+        }
+    }
+
+    fclose(f);
+    fclose(tmpf);
+
+    if (alterado) {
+        remove(PEDIDOS_FILE);
+        rename("tmp_pedidos.txt", PEDIDOS_FILE);
+        printf("Pedido alterado com sucesso!\n");
+        return 1;
+    } else {
+        remove("tmp_pedidos.txt");
+        printf("Pedido nao encontrado ou nao pertence a voce.\n");
+        return 0;
+    }
+}
+
+
 /* menu depois de logado */
 void menu_usuario(const char *usuario) {
     while (1) {
@@ -424,6 +564,7 @@ void menu_usuario(const char *usuario) {
         printf("4 - Excluir pedido\n");
         printf("5 - Avaliar pedido\n");
         printf("6 - Logout\n");
+        printf("7 - Alterar pedido\n");
         printf("Escolha: ");
         char tmp[16];
         read_line(tmp, sizeof(tmp));
@@ -449,7 +590,9 @@ void menu_usuario(const char *usuario) {
         } else if (opc == 6) {
             printf("Logout...\n");
             break;
-        } else {
+        } else if (opc == 7) {
+            alterar_pedido(usuario);
+        }else {
             printf("Opcao invalida.\n");
         }
     }
